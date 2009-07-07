@@ -17,60 +17,61 @@ import optparse
 BASE_URL = "https://prowl.weks.net/api/add_notification.php?"
 USER_AGENT = "PythonProwlScript/1.0"
 
-USERNAME = None
-PASSWORD = None
+class ProwlNotification:
+    def __init__(self, username=None, password=None, passwordfile=None, application=None, event=None, description=None):
+        self.username = username
+        self.password = password if password else self.password_from_file(passwordfile)
 
-def password_from_file(filename):
-    """
-    Extracts a password from a file.
+        self.application = application
+        self.event = event
+        self.description = description
+        
+    def password_from_file(filename):
+        """
+        Extracts a password from a file.
 
-    """
-    if not isinstance(filename, (unicode, str)):
-        return False
+        """
+        if not isinstance(filename, (unicode, str)):
+            return False
 
-    f = open(filename)
-    #get password, needs to be only thing on first line
-    password = f.readlines()[0].strip('\n')
-    f.close()
+        f = open(filename)
+        #get password, needs to be only thing on first line
+        password = f.readlines()[0].strip('\n')
+        f.close()
 
-    return password
+        return password
 
-def post_notification(application, event="", description=""):
-    """
-    Sends a notification to the Prowl server, which is then forwarded to your device running the Prowl application.
-    For more assistance, visit the Prowl website at <http://prowl.weks.net>.
+    def post(self):
+        """
+        Sends a notification to the Prowl server, which is then forwarded to your device running the Prowl application.
+        For more assistance, visit the Prowl website at <http://prowl.weks.net>.
 
-    """
-    kwargs = {'application':application, 
-              'event':event, 
-              'description':description,}
+        """
+        kwargs = {'application':self.application, 
+                'event':self.event, 
+                'description':self.description,}
 
-    if not PASSWORD:
-        print "Password, or password file, is required."
-        return
-
-    for k,v in kwargs.iteritems():
-        if not v:
-            print "'%s' text is required." % k.title()
+        if not self.password:
+            print "Password, or password file, is required."
             return
 
-    H = httplib2.Http(timeout=15)
-    H.force_exception_to_status_code = True
-    H.add_credentials(USERNAME, PASSWORD)
+        for k,v in kwargs.iteritems():
+            if not v:
+                print "'%s' text is required." % k.title()
+                return
 
-    rsp, content = H.request(BASE_URL + urllib.urlencode(kwargs))
+        H = httplib2.Http(timeout=15)
+        H.force_exception_to_status_code = True
+        H.add_credentials(self.username, self.password)
 
-    if not rsp.status == 200:
-        log.error('status code returned: %s', response.status)
-        log.error('content recieved: %s' % content)
-        return False
+        rsp, content = H.request(BASE_URL + urllib.urlencode(kwargs))
 
-    if rsp.status == 200:
-        print "Notification successfully posted.\n"
-    elif rsp.status == 401:
-        print "Notification not posted: incorrect username or password.\n"
-    else:
-        print "Notification not posted: %s" % rsp.status
+        if rsp.status == 200:
+            print "Notification successfully posted.\n"
+        elif rsp.status == 401:
+            print "Notification not posted: incorrect username or password.\n"
+        else:
+            print "Notification not posted: %s" % rsp.status
 
 if __name__ == "__main__":
     usage = "prowl.py [options] event_text"
@@ -90,7 +91,5 @@ if __name__ == "__main__":
         print "Username, password, and event information are required."
         print "use -h or --help for more information."
     else:
-        USERNAME = opts.username
-        PASSWORD = password_from_file(opts.passwordfile) if opts.passwordfile else opts.password
-
-        post_notification(opts.application, opts.event, opts.notification)
+        p = ProwlNotification(opts.username, opts.password if opts.password else opts.passwordfile)
+        p.post()
