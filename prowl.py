@@ -18,19 +18,30 @@ BASE_URL = "https://prowl.weks.net/api/add_notification.php?"
 USER_AGENT = "PythonProwlScript/1.0"
 
 class ProwlNotification:
-    def __init__(self, username=None, password=None, passwordfile=None, application=None, event=None, description=None):
+    def __init__(self, username, password=None, passwordfile=None, application=None, event=None, description=None):
         self.username = username
-        self.password = password if password else self.password_from_file(passwordfile)
+
+        self._password = password
+        self.passwordfile = passwordfile
 
         self.application = application
         self.event = event
         self.description = description
+
+    def get_password(self):
+        if not self._password and self.passwordfile:
+            return self.password_from_file(self.passwordfile)
+        return getattr(self, password)
+    password = property(get_password)
         
-    def password_from_file(filename):
+    def password_from_file(self, filename=None):
         """
         Extracts a password from a file.
 
         """
+        if not filename:
+            filename=self.passwordfile
+
         if not isinstance(filename, (unicode, str)):
             return False
 
@@ -91,5 +102,10 @@ if __name__ == "__main__":
         print "Username, password, and event information are required."
         print "use -h or --help for more information."
     else:
-        p = ProwlNotification(opts.username, opts.password if opts.password else opts.passwordfile)
+        p = ProwlNotification(opts.username, password=opts.password, passwordfile=opts.passwordfile)
+
+        p.application = opts.application
+        p.event = opts.event
+        p.description = opts.notification
+
         p.post()
